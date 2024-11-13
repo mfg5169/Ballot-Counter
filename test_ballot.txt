@@ -1,0 +1,321 @@
+///
+/// Tests for functions in ../src/ballot.c.
+///
+
+#include "ballot.h"
+#include "libvc.h"
+#include "helpers.h"
+
+#include <211.h>
+
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+///
+/// FORWARD DECLARATIONS
+///
+
+// Checks that `clean_name(name)` produces `expected`. (Borrows both
+// arguments.)
+static void check_clean_name(const char* name, const char* expected);
+
+// Test case functions (you need more!):
+static void test_clean_name(void);
+static void test_ballot_3(void);
+static void test_ballot_with_vc(void);
+static void test_ballot_with_vc2(void);
+static void new_with_read_ballot (void);
+
+///
+/// MAIN FUNCTION
+///
+
+int main(int argc, char* argv[])
+{
+    test_clean_name();
+    test_ballot_3();
+    test_ballot_with_vc();
+    test_ballot_with_vc2();
+    new_with_read_ballot ();
+}
+
+
+///
+/// TEST CASE FUNCTIONS
+///
+
+static void test_clean_name(void)
+{
+    check_clean_name("Alan Turing", "ALANTURING");
+    check_clean_name("Stroustrup, Bjarne", "STROUSTRUPBJARNE");
+    check_clean_name("C4P0", "CP");
+    check_clean_name("    ", "");
+
+    check_clean_name("YOUSSEF", "YOUSSEF");
+    check_clean_name("YOUSSEF\n", "YOUSSEF");
+    check_clean_name("4565786", "");
+    check_clean_name("this is Ramadan", "THISISRAMADAN");
+    check_clean_name("Yousse\nfff", "YOUSSEFFF");
+    
+    
+}
+
+static void test_ballot_3(void)
+{
+    // Skip this test if MAX_CANDIDATES isn't large enough.
+    if (MAX_CANDIDATES < 3) {
+        return;
+    }
+
+    ballot_t ballot = ballot_create();
+    CHECK( ballot != NULL );
+    if (ballot == NULL) {
+        // Can't keep testing if ballot is NULL
+        return;
+    }
+
+    CHECK_POINTER(ballot_leader(ballot), NULL);
+
+    ballot_insert(ballot, strdupb("A", "test_ballot_3"));
+    ballot_insert(ballot, strdupb("B", "test_ballot_3"));
+    ballot_insert(ballot, strdupb("C", "test_ballot_3"));
+
+    CHECK_STRING(ballot_leader(ballot), "A");
+    ballot_eliminate(ballot, "D");
+    CHECK_STRING(ballot_leader(ballot), "A");
+    ballot_eliminate(ballot, "B");
+    CHECK_STRING(ballot_leader(ballot), "A");
+    ballot_eliminate(ballot, "A");
+    CHECK_STRING(ballot_leader(ballot), "C");
+    ballot_eliminate(ballot, "C");
+    CHECK_POINTER(ballot_leader(ballot), NULL);
+    ballot_eliminate(ballot, "C");
+    CHECK_POINTER(ballot_leader(ballot), NULL);
+
+    ballot_destroy(ballot);
+}
+
+static void test_ballot_with_vc(void)
+{
+    if (MAX_CANDIDATES < 3) {
+            return;
+    }
+    
+    ballot_t ballot = ballot_create();
+    CHECK( ballot != NULL );
+    if (ballot == NULL) {
+        // Can't keep testing if ballot is NULL
+        return;
+    }
+
+    CHECK_POINTER(ballot_leader(ballot), NULL);
+    
+    ballot_insert(ballot, strdupb("A", "test_ballot_with_vc"));
+    ballot_insert(ballot, strdupb("B", "test_ballot_with_vc"));
+    ballot_insert(ballot, strdupb("C", "test_ballot_with_vc"));
+
+    vote_count_t vc = vc_create();
+
+    count_ballot(vc, ballot);
+
+    CHECK_SIZE( vc_lookup(vc, "A"), 1);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 0);
+
+    count_ballot( vc, ballot);
+
+    CHECK_SIZE( vc_lookup(vc, "A"), 2);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 0);
+    
+    ballot_eliminate(ballot, "B");
+
+    count_ballot( vc, ballot);
+    
+    CHECK_SIZE( vc_lookup(vc, "A"), 3);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 0);
+
+    ballot_eliminate(ballot, "A");
+
+    count_ballot( vc, ballot);
+
+    CHECK_SIZE( vc_lookup(vc, "A"), 3);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 1);
+
+    ballot_eliminate(ballot, "C");
+
+    count_ballot( vc, ballot);
+
+    CHECK_SIZE( vc_lookup(vc, "A"), 3);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 1);
+
+    CHECK_POINTER(ballot_leader(ballot), NULL);
+
+    count_ballot( vc, ballot);
+
+    CHECK_SIZE( vc_lookup(vc, "A"), 3);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 1);
+
+    ballot_eliminate(ballot, "C");
+    CHECK_POINTER(ballot_leader(ballot), NULL);
+    
+    ballot_destroy(ballot);
+
+    vc_destroy(vc);
+}
+
+static void test_ballot_with_vc2(void)
+{
+    if (MAX_CANDIDATES < 3) {
+            return;
+    }
+    
+    ballot_t ballot = ballot_create();
+    CHECK( ballot != NULL );
+    if (ballot == NULL) {
+        // Can't keep testing if ballot is NULL
+        return;
+    }
+
+    CHECK_POINTER(ballot_leader(ballot), NULL);
+    
+    ballot_insert(ballot, strdupb("A", "test_ballot_with_vc2"));
+    ballot_insert(ballot, strdupb("B", "test_ballot_with_vc2"));
+    ballot_insert(ballot, strdupb("C", "test_ballot_with_vc2"));
+    ballot_insert(ballot, strdupb("D", "test_ballot_with_vc2"));
+
+    vote_count_t vc = vc_create();
+
+    count_ballot(vc, ballot);
+
+    CHECK_SIZE( vc_lookup(vc, "A"), 1);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 0);
+    CHECK_SIZE( vc_lookup(vc, "D"), 0);
+
+    count_ballot( vc, ballot);
+
+    CHECK_SIZE( vc_lookup(vc, "A"), 2);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 0);
+    
+    ballot_eliminate(ballot, "B");
+
+    count_ballot( vc, ballot);
+    
+    CHECK_SIZE( vc_lookup(vc, "A"), 3);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 0);
+
+    ballot_eliminate(ballot, "A");
+
+    count_ballot( vc, ballot);
+
+    CHECK_SIZE( vc_lookup(vc, "A"), 3);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 1);
+
+    ballot_eliminate(ballot, "C");
+
+    count_ballot( vc, ballot);
+
+    CHECK_SIZE( vc_lookup(vc, "A"), 3);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 1);
+    CHECK_SIZE( vc_lookup(vc, "D"), 1);
+
+    ballot_eliminate(ballot, "D");
+
+    CHECK_POINTER(ballot_leader(ballot), NULL);
+
+    count_ballot( vc, ballot);
+
+    CHECK_SIZE( vc_lookup(vc, "A"), 3);
+    CHECK_SIZE( vc_lookup(vc, "B"), 0);
+    CHECK_SIZE( vc_lookup(vc, "C"), 1);
+    CHECK_SIZE( vc_lookup(vc, "D"), 1);
+    
+    ballot_destroy(ballot);
+    vc_destroy(vc);
+}
+
+
+static ballot_t test_read_ballot(const char* file_name) 
+{
+    FILE* file = fopen(file_name, "r");
+
+    if (file != NULL) {
+    
+        ballot_t result = read_ballot(file);
+
+        fclose(file);
+        
+        return result;
+        
+    } else {
+
+        return NULL;
+    }
+}
+
+static void new_with_read_ballot (void)
+{
+    ballot_t one_ballot = test_read_ballot("Resources/one_ballot_onevote.in");
+
+    CHECK_STRING(ballot_leader(one_ballot), "MYLES");
+
+    ballot_destroy(one_ballot);
+
+    ballot_t multiple_candidates = test_read_ballot("Resources/multiple_candidates.in");
+
+    vote_count_t vc = vc_create();
+    
+    count_ballot(vc, multiple_candidates);
+    
+    CHECK_SIZE( vc_lookup(vc, "MYLES"), 1);
+    CHECK_SIZE( vc_lookup(vc, "YOUSSEF"), 0);
+
+    ballot_eliminate(multiple_candidates, "MYLES");
+
+    count_ballot(vc, multiple_candidates);
+
+    CHECK_SIZE( vc_lookup(vc, "MYLES"), 1);
+    CHECK_SIZE( vc_lookup(vc, "YOUSSEF"), 1);
+
+    ballot_eliminate(multiple_candidates, "YOUSSEF");
+    ballot_eliminate(multiple_candidates, "RONIT");
+    ballot_eliminate(multiple_candidates, "ASIM");
+    ballot_eliminate(multiple_candidates, "ALEX");
+    ballot_eliminate(multiple_candidates, "ALEX");
+
+    CHECK_POINTER(ballot_leader(multiple_candidates), NULL);
+
+    count_ballot(vc, multiple_candidates);
+    
+    CHECK_SIZE( vc_lookup(vc, "MYLES"), 1);
+    CHECK_SIZE( vc_lookup(vc, "YOUSSEF"), 1);
+    
+    ballot_destroy(multiple_candidates);
+
+    vc_destroy(vc);
+
+    
+}
+///
+/// HELPER FUNCTIONS
+///
+
+// Asserts that `clean_name(name)` returns `expected`.
+static void check_clean_name(const char* name, const char* expected)
+{
+    char* actual = strdupb(name, "check_clean_name");
+    clean_name(actual);
+    CHECK_STRING(actual, expected);
+    free(actual);
+}

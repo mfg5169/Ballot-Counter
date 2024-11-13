@@ -1,0 +1,142 @@
+#include "ballot_box.h"
+#include "helpers.h"
+
+#include <211.h>
+
+#include <stdlib.h>
+#include <string.h>
+
+// A `ballot_box_t` (defined in `ballot_box.h`) is a linked list made
+// of `struct bb_node`s. Each node owns the next node, so the whole list
+// is owned by the pointer to the first node.
+struct bb_node
+{
+    ballot_t ballot;
+    struct bb_node* next;
+};
+
+
+// The empty ballot box is the null pointer.
+const ballot_box_t empty_ballot_box = NULL;
+
+
+void bb_destroy(ballot_box_t bb)
+{
+    if (bb != NULL) {
+
+        ballot_box_t current_ballot_box = bb;
+        
+        while (current_ballot_box != NULL) {
+
+            bb = bb->next;
+            ballot_destroy(current_ballot_box->ballot);
+            free(current_ballot_box);
+            current_ballot_box = bb;    
+            
+        }
+
+    }
+   
+}
+
+void bb_insert(ballot_box_t* bbp, ballot_t ballot)
+{
+    ballot_box_t head = mallocb(sizeof *head, "bb_insert");
+    head->ballot = ballot;
+    head->next   = *bbp;
+    *bbp = head;
+}
+
+ballot_box_t read_ballot_box(FILE* inf)
+{
+
+    ballot_box_t bbp = empty_ballot_box;
+
+    while (!feof(inf)) {
+
+        ballot_t new_ballot = read_ballot(inf);
+
+        bb_insert(&bbp, new_ballot);
+    }
+
+    return bbp;
+}
+
+vote_count_t bb_count(ballot_box_t bb)
+{
+    vote_count_t result = vc_create();
+
+    if (result == NULL) {
+
+        fprintf(stderr, "No enough Memory");
+
+        exit(7);
+    }
+
+    ballot_box_t current_ballot_box = bb;
+
+    while (current_ballot_box != NULL) {
+
+        count_ballot(result, current_ballot_box->ballot);
+        
+        current_ballot_box = current_ballot_box->next;   
+        
+    }
+
+    return result;
+}
+
+void bb_eliminate(ballot_box_t bb, const char* candidate)
+{
+    ballot_box_t current_ballot_box = bb;
+
+    while (current_ballot_box != NULL) {
+
+        ballot_t current = current_ballot_box->ballot;
+
+        ballot_eliminate(current, candidate);
+
+        current_ballot_box = current_ballot_box->next;
+    }
+}
+
+char* get_irv_winner(ballot_box_t bb)
+{
+    if (bb == NULL) {
+
+        return NULL;
+    }
+
+    char* result = NULL; 
+
+    while (bb != NULL && result == NULL) {
+
+        vote_count_t vc = bb_count(bb);
+
+        if (vc_total(vc) == 0) {
+
+            return NULL;
+        }
+
+        size_t half_votes = vc_total(vc) / 2;
+
+        if (vc_max(vc) != NULL) {
+
+            if (vc_lookup(vc, vc_max(vc)) > half_votes) {
+
+                result = strdupb(vc_max(vc), "get_irv_winner");
+                
+            } else {
+
+                 bb_eliminate(bb, vc_min(vc));
+               
+            }
+                
+            
+        }
+        
+        vc_destroy(vc);
+    }
+    
+    return result;
+}

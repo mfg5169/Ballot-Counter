@@ -1,0 +1,327 @@
+///
+/// Tests for functions in ../src/ballot_box.c.
+///
+
+#include "ballot_box.h"
+#include "helpers.h"
+
+#include <211.h>
+
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+///
+/// FORWARD DECLARATIONS
+///
+
+// Takes the expected winner, followed by all the votes. Each ballot is
+// given as successive string arguments, terminated by "%". The final
+// argument, after the final ballot's "%", must be NULL.
+static void check_election(const char* expected_winner, ...);
+
+// Test case functions (you need more!):
+static void three_candidates_tied(void),
+            win_on_third_round(void),
+            example_from_wikipedia(void),
+            winner_six_ballot(void),
+            winner_twelve_ballot(void),
+            winner_thirtysix_ballot(void),
+            empty_box(ballot_box_t),
+            winner_one_ballot(void),
+            new_with_read_ballot_box (void);
+
+
+///
+/// MAIN FUNCTION
+///
+
+int main(void)
+{
+    three_candidates_tied();
+    win_on_third_round();
+    example_from_wikipedia();
+    winner_one_ballot();
+    winner_six_ballot();
+    winner_twelve_ballot();
+    winner_thirtysix_ballot();
+    empty_box(empty_ballot_box);
+    new_with_read_ballot_box ();
+    
+}
+
+
+///
+/// TEST CASE FUNCTIONS
+///
+
+static void three_candidates_tied(void)
+{
+    if (MAX_CANDIDATES < 3) {
+        return;
+    }
+
+    check_election("A",
+            "a", "b", "c", "%",
+            "a", "b", "c", "%",
+            NULL);
+}
+
+static void win_on_third_round(void)
+{
+    if (MAX_CANDIDATES < 6) {
+        return;
+    }
+
+    check_election("BIDEN",
+            "Bloomberg", "Biden", "%",
+            "Yang", "Biden", "%",
+            "Warren", "Biden", "%",
+            "Sanders", "Biden", "%",
+            "Biden", "Sanders", "%",
+            "Biden", "Gabbard", "%",
+            NULL);
+}
+
+static void example_from_wikipedia(void)
+{
+    if (MAX_CANDIDATES < 3) {
+        return;
+    }
+
+    check_election("SUE",
+            "bob", "bill", "s u e", "%",
+            "Sue", "Bob", "Bill", "%",
+            "Bill!", "Sue!", "BoB!", "%",
+            "bob", "bill", "sue", "%",
+            "sue", "bob", "bill", "%",
+            NULL);
+}
+
+
+static void winner_one_ballot(void)
+{
+    if (MAX_CANDIDATES < 3) {
+        return;
+    }
+
+    check_election(NULL,
+            NULL, NULL, NULL, "%",
+            NULL);
+
+    bb_destroy(NULL);
+
+}
+
+static void winner_six_ballot(void)
+{
+    if (MAX_CANDIDATES < 5) {
+        return;
+    }
+
+    check_election("MYLES",
+            "Youssef", "VINCE", "Myles", "%",
+            "bob", "bill", "myles", "%",
+            "Sue", "myles", "Bill", "%",
+            "Bill!", "MARKUS", "BoB!", "%",
+            "MYLES", "bill", "RONIT", "%",
+            "sue", "MYLES", "bill", "%",
+            NULL);
+}
+
+
+static void winner_twelve_ballot(void)
+{
+    if (MAX_CANDIDATES < 5) {
+        return;
+    }
+
+    check_election("YOUSSEF",
+            "Youssef", "VINCE", "Myles", "%",
+            "bob", "YOUSSEF", "myles", "%",
+            "Sue", "myles", "YOUSSEF", "%",
+            "Bill!", "MARKUS", "YOUSSEF", "%",
+            "KIDO", "bill", "RONIT", "%",
+            "sue", "LUFFY", "YOUSSEF", "%",
+            "Youssef", "VINCE", "Myles", "%",
+            "youssef", "bill", "myles", "%",
+            "KAIDO", "LUFFY", "BigMOM", "%",
+            "Bill!", "MARKUS", "Youssef", "%",
+            "ZORO", "bill", "RONIT", "%",
+            "sue", "youssef", "bill", "%",
+            NULL);
+}
+
+
+static void winner_thirtysix_ballot(void)
+{
+    if (MAX_CANDIDATES < 10) {
+        return;
+    }
+
+    check_election("YOUSSEF",
+            "Youssef", "VINCE", "Myles", "%",
+            "bob", "YOUSSEF", "myles", "%",
+            "Sue", "myles", "YOUSSEF", "%",
+            "Bill!", "MARKUS", "YOUSSEF", "%",
+            "KIDO", "bill", "RONIT", "%",
+            "sue", "LUFFY", "YOUSSEF", "%",
+            "Youssef", "VINCE", "Myles", "%",
+            "youssef", "bill", "myles", "%",
+            "KAIDO", "LUFFY", "BigMOM", "%",
+            "Bill!", "MARKUS", "Youssef", "%",
+            "ZORO", "bill", "RONIT", "%",
+            "sue", "youssef", "bill", "%",
+            "Youssef", "VINCE", "Myles", "%",
+            "bob", "YOUSSEF", "myles", "%",
+            "Sue", "myles", "YOUSSEF", "%",
+            "Bill!", "MARKUS", "YOUSSEF", "%",
+            "KIDO", "bill", "RONIT", "%",
+            "sue", "LUFFY", "YOUSSEF", "%",
+            "Youssef", "VINCE", "Myles", "%",
+            "youssef", "bill", "myles", "%",
+            "KAIDO", "LUFFY", "BigMOM", "%",
+            "Bill!", "MARKUS", "Youssef", "%",
+            "ZORO", "bill", "RONIT", "%",
+            "sue", "youssef", "SHnaks", "%",
+            "Youssef", "VINCE", "Myles", "%",
+            "bob", "YOUSSEF", "myles", "%",
+            "Sue", "ASIM", "YOUSSEF", "%",
+            "AYA", "MARKUS", "YOUSSEF", "%",
+            "SANJI", "bill", "RONIT", "%",
+            "sue", "LUFFY", "YOUSSEF", "%",
+            "Youssef", "VINCE", "Myles", "%",
+            "youssef", "bill", "myles", "%",
+            "KAIDO", "LUFFY", "BigMOM", "%",
+            "Bill!", "MARKUS", "Youssef", "%",
+            "ZORO", "DIANA", "RONIT", "%",
+            "sue", "youssef", "bill", "%",
+            NULL);
+}
+
+
+static void empty_box(ballot_box_t bb)
+{
+
+    check_election(NULL, bb);
+
+    bb_destroy(bb);
+}
+
+///
+/// HELPER FUNCTIONS YOU SHOULD USE
+///
+
+// These are helpers for `check_election()` that you are unlikely to
+// call directly.
+static ballot_box_t build_ballot_box(va_list);
+static void check_irv_winner(const char*, ballot_box_t);
+
+
+// Simulates an election and checks the winner. The first argument
+// is the name of the expected winner, and the remaining arguments
+// are the names on the ballots, with "%" in between and a NULL
+// marking the end. (See uses of this function above for examples.)
+static void
+check_election(const char* expected, ...)
+{
+    va_list ap;
+    va_start(ap, expected);
+    ballot_box_t bb = build_ballot_box(ap);
+    va_end(ap);
+
+    check_irv_winner(expected, bb);
+
+    bb_destroy(bb);
+}
+
+
+
+static ballot_box_t test_read_ballot_box (const char* file_name) 
+{
+    FILE* file = fopen(file_name, "r");
+
+    if (file != NULL) {
+        ballot_box_t result = read_ballot_box(file);
+        fclose(file);
+
+        return result;
+        
+    } else {
+
+        return NULL;
+    }
+}
+
+static void new_with_read_ballot_box (void)
+{
+    ballot_box_t two_ballots = test_read_ballot_box ("Resources/two_ballots.in");
+
+    char* ballot_winner = get_irv_winner(two_ballots);
+    CHECK_STRING(ballot_winner, "MYLES");
+    free(ballot_winner);
+    vote_count_t vc = bb_count(two_ballots);
+    CHECK_SIZE( vc_lookup(vc, "MYLES"), 2);
+    vc_destroy(vc);
+    bb_eliminate(two_ballots, "YOUSSEF");
+    bb_destroy(two_ballots);
+
+    ballot_box_t multiple_ballots = test_read_ballot_box ("Resources/Thirty_balllot_test.in");
+    ballot_winner = get_irv_winner(multiple_ballots);
+    CHECK_STRING(ballot_winner, "TOMMY");
+    free(ballot_winner);
+    bb_eliminate(multiple_ballots, "YOUSSEF");
+    bb_destroy(multiple_ballots);
+
+    ballot_box_t nothing_inside = test_read_ballot_box ("empty_ballot.in");
+    
+    
+    bb_destroy(nothing_inside);
+    
+}
+/// HELPERS FOR THE HELPERS
+
+// Builds a ballot box from multiple string arguments. Returns
+// ownership of the ballot box to the caller.
+static ballot_box_t
+build_ballot_box(va_list ap)
+{
+    ballot_box_t bb = empty_ballot_box;
+    ballot_t ballot = NULL;
+
+    char* name;
+    while ((name = va_arg(ap, char*))) {
+        if (!ballot) {
+            ballot = ballot_create();
+        }
+
+        if (strcmp(name, "%") == 0) {
+            bb_insert(&bb, ballot);
+            ballot = NULL;
+        } else {
+            ballot_insert(ballot, strdupb(name, "check_election"));
+        }
+    }
+
+    if (ballot) {
+        bb_insert(&bb, ballot);
+    }
+
+    return bb;
+}
+
+// Checks that `expected` is the winner of `bb`. Borrows both arguments.
+static void
+check_irv_winner(const char* expected, ballot_box_t bb)
+{
+    char* actual = get_irv_winner(bb);
+
+    if (expected) {
+        CHECK_STRING(actual, expected);
+    } else {
+        CHECK_POINTER(actual, expected);
+    }
+
+    free(actual);
+}
